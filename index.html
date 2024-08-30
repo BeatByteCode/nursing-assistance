@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Data Management</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        #patientData {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload PDF/Image</h1>
+    <form id="uploadForm">
+        <input type="file" id="fileInput" name="file">
+        <button type="button" onclick="uploadFile()">Upload File</button>
+    </form>
+
+    <h1>Insert Patient Data</h1>
+    <form id="dataForm">
+        <input type="text" id="name" placeholder="Name" required><br>
+        <input type="number" id="age" placeholder="Age" required><br>
+        <input type="text" id="gender" placeholder="Gender" required><br>
+        <input type="text" id="bed_number" placeholder="Bed Number" required><br>
+        <input type="date" id="date_of_admission" placeholder="Date of Admission" required><br>
+        <input type="date" id="date_of_review" placeholder="Date of Review" required><br>
+        <input type="text" id="medication_name" placeholder="Medication Name" required><br>
+        <input type="text" id="dosage" placeholder="Dosage" required><br>
+        <input type="text" id="timing" placeholder="Timing (e.g., 1-0-1)" required><br>
+        <button type="button" onclick="insertData()">Insert Data</button>
+    </form>
+
+    <h1>Search Patients</h1>
+    <input type="text" id="searchInput" placeholder="Enter patient name">
+    <button type="button" onclick="searchPatient()">Search</button>
+
+    <div id="patientData">
+        <h2>All Patients</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Gender</th>
+                    <th>Bed Number</th>
+                    <th>Date of Admission</th>
+                    <th>Date of Review</th>
+                    <th>Medication Name</th>
+                    <th>Dosage</th>
+                    <th>Timing</th>
+                </tr>
+            </thead>
+            <tbody id="patientTableBody">
+                <!-- Data will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function uploadFile() {
+            const formData = new FormData();
+            const fileInput = document.getElementById('fileInput');
+
+            if (fileInput.files.length === 0) {
+                alert("Please select a file to upload.");
+                return;
+            }
+
+            formData.append('file', fileInput.files[0]);
+
+            const response = await fetch('http://127.0.0.1:5000/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            alert(result.message);
+        }
+
+        async function insertData() {
+            const data = {
+                name: document.getElementById('name').value,
+                age: document.getElementById('age').value,
+                gender: document.getElementById('gender').value,
+                bed_number: document.getElementById('bed_number').value,
+                date_of_admission: document.getElementById('date_of_admission').value,
+                date_of_review: document.getElementById('date_of_review').value,
+                medication_name: document.getElementById('medication_name').value,
+                dosage: document.getElementById('dosage').value,
+                timing: document.getElementById('timing').value
+            };
+
+            const response = await fetch('http://127.0.0.1:5000/patients', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            alert(result.message);
+            loadPatients();  // Refresh the patient data after insertion
+        }
+
+        async function loadPatients() {
+            const response = await fetch('http://127.0.0.1:5000/patients', {
+                method: 'GET'
+            });
+
+            const patients = await response.json();
+            const tableBody = document.getElementById('patientTableBody');
+            tableBody.innerHTML = "";  // Clear previous data
+
+            patients.forEach(patient => {
+                const row = `<tr>
+                    <td>${patient.name}</td>
+                    <td>${patient.age}</td>
+                    <td>${patient.gender}</td>
+                    <td>${patient.bed_number}</td>
+                    <td>${new Date(patient.date_of_admission).toLocaleDateString()}</td>
+                    <td>${new Date(patient.date_of_review).toLocaleDateString()}</td>
+                    <td>${patient.medication.name}</td>
+                    <td>${patient.medication.dosage}</td>
+                    <td>${patient.medication.timing}</td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        async function searchPatient() {
+            const name = document.getElementById('searchInput').value;
+
+            const response = await fetch(`http://127.0.0.1:5000/patients/search?name=${name}`, {
+                method: 'GET'
+            });
+
+            const patients = await response.json();
+            const tableBody = document.getElementById('patientTableBody');
+            tableBody.innerHTML = "";  // Clear previous data
+
+            patients.forEach(patient => {
+                const row = `<tr>
+                    <td>${patient.name}</td>
+                    <td>${patient.age}</td>
+                    <td>${patient.gender}</td>
+                    <td>${patient.bed_number}</td>
+                    <td>${new Date(patient.date_of_admission).toLocaleDateString()}</td>
+                    <td>${new Date(patient.date_of_review).toLocaleDateString()}</td>
+                    <td>${patient.medication.name}</td>
+                    <td>${patient.medication.dosage}</td>
+                    <td>${patient.medication.timing}</td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        // Load all patients on page load
+        window.onload = loadPatients;
+    </script>
+</body>
+</html>
